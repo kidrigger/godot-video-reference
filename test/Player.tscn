@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://dxvn2ukbebmvj"]
+
+[node name="Player" type="VideoPlayer"]
+script = null
+__meta__ = {
+"_edit_use_anchors_": false
+}

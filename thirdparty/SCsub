@@ -1,0 +1,33 @@
+#!python
+
+Import("env")
+
+# Thirdparty source files
+
+thirdparty_obj = []
+
+thirdparty_dir = "#thirdparty/libsimplewebm/"
+thirdparty_sources = [
+    "libwebm/mkvparser/mkvparser.cc",
+    "OpusVorbisDecoder.cpp",
+    "VPXDecoder.cpp",
+    "WebMDemuxer.cpp",
+]
+thirdparty_sources = [thirdparty_dir + file for file in thirdparty_sources]
+
+env.Prepend(CPPPATH=[thirdparty_dir, thirdparty_dir + "libwebm/"])
+
+# also requires libogg, libvorbis and libopus
+env.Prepend(CPPPATH=["#thirdparty/libogg"])
+env.Prepend(CPPPATH=["#thirdparty/libvorbis"])
+env.Prepend(CPPPATH=["#thirdparty/opus"])
+
+env.Prepend(CPPPATH=["#thirdparty/libvpx"])
+SConscript("libvpx/SCsub")
+
+env.add_source_files(thirdparty_obj, thirdparty_sources)
+env.modules_sources += thirdparty_obj
+
+SConscript("libvorbis/SCsub")
+SConscript("libogg/SCsub")
+SConscript("opus/SCsub")

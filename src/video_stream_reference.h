@@ -8,6 +8,9 @@ namespace godot {
 
 class VideoStreamReference : public VideoStreamExtension {
 	GDCLASS(VideoStreamReference, VideoStreamExtension);
+
+	String file;
+	int audio_track = 0;
 	
 protected:
 	static void _bind_methods();

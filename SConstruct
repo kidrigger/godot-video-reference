@@ -30,6 +30,8 @@ opts.Add(PathVariable("target_path", "The path where the lib is installed.", "bi
 opts.Add(PathVariable("test_path", "The path where the test is installed.", "test/addons/godot_video_reference/bin/", PathVariable.PathAccept))
 opts.Add(PathVariable("target_name", "The library name.", "libgdvideo", PathVariable.PathAccept))
 opts.Add(BoolVariable("vsproj", "Generate a project for Visual Studio", "no"))
+opts.Add(BoolVariable("builtin_opus", "Use Built-in Opus", "yes"))
+opts.Add(BoolVariable("builtin_libogg", "Use Built-in LibOgg", "yes"))
 
 # Local dependency paths, adapt them to your setup
 godot_headers_path = "godot-cpp/godot-headers/"
@@ -141,14 +143,41 @@ env.Append(LIBS=[cpp_library])
 # tweak this if you want to use different folders, or more folders, to store your source code in.
 env.Append(CPPPATH=["src/"])
 
+Export('env')
+
 def glob_filenames(pattern):
     from glob import glob
     return glob(pattern)
 
+env.__class__.sources = []
+env.__class__.modules_sources = []
+env.__class__.includes = []
+
 sources = glob_filenames("src/*.cpp")
 includes = glob_filenames("src/*.h")
 
-target_name = "";
+env.sources += sources
+env.includes = includes
+
+def add_source_files(self, arr, regex):
+    if type(regex) == list:
+        arr += regex
+        print(arr)
+    elif type(regex) == str:
+        arr += glob_filenames(regex)
+        print(arr)
+
+
+env.__class__.add_source_files = add_source_files 
+
+SConscript("thirdparty/SCsub")
+
+env.Prepend(CPPPATH=["thirdparty/"])
+env.Prepend(CPPPATH=["thirdparty/libsimplewebm"])
+env.Prepend(CPPPATH=["thirdparty/libsimplewebm/libwebm"])
+env.Prepend(CPPPATH=["thirdparty/libvpx"])
+
+target_name = ""
 if env["target"] in ("debug","d"):
     lib_target = env["target_path"]
     target_name = "Debug"
@@ -159,12 +188,14 @@ else:
 if env["test"]:
     lib_target = env["test_path"]
 
-library = env.SharedLibrary(target = lib_target + env["target_name"], source=sources)
+library = env.SharedLibrary(target = lib_target + env["target_name"], source=env.sources+env.modules_sources)
+
+print (env.modules_sources)
 
 if env["vsproj"]:
     vsproj = env.MSVSProject(target = 'godot_video_reference' + env['MSVSPROJECTSUFFIX'],
-                    srcs = sources,
-                    incs = includes,
+                    srcs = env.sources + env.modules_sources,
+                    incs = env.includes,
                     localincs = [],
                     resources = [],
                     misc = ['LICENSE','README.md','.clang-format','.gitignore','.gitmodules'],

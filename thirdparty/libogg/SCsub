@@ -1,0 +1,10 @@
+
+Import('env')
+
+mod_sources = []
+
+thirdparty_dir = '#thirdparty/libogg/'
+
+env.add_source_files(mod_sources, "*.c")
+
+env.modules_sources += [thirdparty_dir + file for file in mod_sources]

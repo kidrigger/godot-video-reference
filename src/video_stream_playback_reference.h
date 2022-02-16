@@ -5,10 +5,38 @@
 #include <godot_cpp/classes/image_texture.hpp>
 #include <deque>
 
+class WebMFrame;
+class WebMDemuxer;
+class VPXDecoder;
+class OpusVorbisDecoder;
+
 namespace godot {
 
 class VideoStreamPlaybackReference : public VideoStreamPlaybackExtension {
 	GDCLASS(VideoStreamPlaybackReference, VideoStreamPlaybackExtension)
+
+	String file_name;
+	int audio_track = 0;
+
+	WebMDemuxer *webm = nullptr;
+	VPXDecoder *video = nullptr;
+	OpusVorbisDecoder *audio = nullptr;
+
+	std::vector<WebMFrame*> video_frames;
+	WebMFrame*audio_frame = nullptr;
+	int video_frames_pos = 0, video_frames_capacity = 0;
+
+	int num_decoded_samples = 0, samples_offset = -1;
+	void *mix_udata = nullptr;
+
+	bool playing = false, paused = false;
+	double delay_compensation = 0.0;
+	double time = 0.0, video_frame_delay = 0.0, video_pos = 0.0;
+
+	PackedByteArray frame_data;
+	Ref<ImageTexture> texture;
+
+	float *pcm = nullptr;
 
 protected:
 	static void _bind_methods();
@@ -16,10 +44,8 @@ protected:
 	friend class VideoStreamReference;
 
 	bool initialized = false;
-	bool playing = false;
-	bool paused = false;
-	Ref<ImageTexture> texture;
 public:
+	void delete_pointers();
 	virtual void _stop() override;
 	virtual void _play() override;
 	virtual bool _is_playing() const override;
@@ -32,11 +58,15 @@ public:
 	virtual void _seek(double time) override;
 	virtual void _set_audio_track(int64_t idx) override;
 	virtual Ref<Texture2D> _get_texture() const override;
+	bool should_process(WebMFrame &video_frame);
 	virtual void _update(double delta) override;
 	virtual int64_t _get_channels() const override;
 	virtual int64_t _get_mix_rate() const override;
+	bool has_enough_video_frames() const;
 	virtual void _initialize() override;
 	virtual void _cleanup() override;
+
+	virtual bool _file_opened() override;
 
 	VideoStreamPlaybackReference() = default;
 	~VideoStreamPlaybackReference() override;

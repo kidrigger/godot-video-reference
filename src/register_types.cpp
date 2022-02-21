@@ -21,7 +21,7 @@ void register_types() {
 
 	VideoDecoderServer* p_server = VideoDecoderServer::get_singleton();
 	ERR_FAIL_NULL(p_server);
-
+	
 	interface_ref.instantiate();
 	p_server->add_interface(interface_ref);
 }

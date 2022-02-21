@@ -9,13 +9,12 @@ void godot::VideoStreamReference::_bind_methods() {
 godot::Ref<godot::VideoStreamPlaybackExtension> godot::VideoStreamReference::_instance_playback() {
 	Ref<VideoStreamPlaybackReference> ref;
 	ref.instantiate();
-	WARN_PRINT("INSTANTIATED");
 	return ref;
 }
 
 godot::PackedStringArray godot::VideoStreamReference::_get_supported_extensions() const {
 	PackedStringArray psa;
-	psa.append("mp4");
+	psa.append("webm");
 	return psa;
 }
 

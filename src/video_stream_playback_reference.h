@@ -22,7 +22,7 @@ class VideoStreamPlaybackReference : public VideoStreamPlaybackExtension {
 	VPXDecoder *video = nullptr;
 	OpusVorbisDecoder *audio = nullptr;
 
-	std::vector<WebMFrame*> video_frames;
+	WebMFrame** video_frames = nullptr;
 	WebMFrame*audio_frame = nullptr;
 	int video_frames_pos = 0, video_frames_capacity = 0;
 
@@ -68,7 +68,7 @@ public:
 
 	virtual bool _file_opened() override;
 
-	VideoStreamPlaybackReference() = default;
+	VideoStreamPlaybackReference();
 	~VideoStreamPlaybackReference() override;
 };
 }

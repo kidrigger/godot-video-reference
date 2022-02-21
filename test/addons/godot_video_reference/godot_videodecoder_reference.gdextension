@@ -1,8 +1,0 @@
-[configuration]
-
-entry_symbol = "godot_video_reference_library_init"
-
-[libraries]
-
-linux.64 = "bin/x11/libgdvideo.so"
-windows.64 = "bin/win64/libgdvideo.dll"

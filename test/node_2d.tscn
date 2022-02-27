@@ -2,14 +2,10 @@
 
 [ext_resource type="VideoStream" path="res://bigbuckbunny.webm" id="1_jrahw"]
 
-[node name="Control" type="Control"]
-offset_right = 1016.0
-offset_bottom = 592.0
-
-[node name="Node2D" type="VideoStreamPlayer" parent="."]
+[node name="Node2D" type="VideoStreamPlayer"]
 rect_min_size = Vector2(100, 100)
-offset_right = 936.0
-offset_bottom = 559.0
+offset_right = 1024.0
+offset_bottom = 601.0
 stream = ExtResource( "1_jrahw" )
 autoplay = true
 __meta__ = {

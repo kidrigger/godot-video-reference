@@ -19,10 +19,10 @@ void register_types() {
 	ClassDB::register_class<VideoStreamPlaybackReference>();
 	ClassDB::register_class<VideoStreamReference>();
 
+	interface_ref.instantiate();
+	
 	VideoDecoderServer* p_server = VideoDecoderServer::get_singleton();
 	ERR_FAIL_NULL(p_server);
-	
-	interface_ref.instantiate();
 	p_server->add_interface(interface_ref);
 }
 

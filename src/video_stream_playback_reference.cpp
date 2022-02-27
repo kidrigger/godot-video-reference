@@ -5,7 +5,6 @@
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
-#include <godot_cpp/core/memory.hpp>
 #include <godot_cpp/classes/os.hpp>
 
 #include <yuv2rgb.h>
@@ -20,6 +19,8 @@
 // libwebm
 #include <mkvparser/mkvparser.h>
 
+#include <godot_cpp/classes/audio_server.hpp>
+
 class MkvReader : public mkvparser::IMkvReader {
 	godot::VideoStreamPlaybackReference* playback;
 	
@@ -27,10 +28,10 @@ public:
 	MkvReader(godot::VideoStreamPlaybackReference* pb) : playback(pb) {
 	}
 	
-	~MkvReader() {
+	virtual ~MkvReader() {
 	}
 
-	virtual int Read(long long pos, long len, unsigned char *buf) {
+	int Read(long long pos, long len, unsigned char *buf) override {
 		if (playback) {
 			if (playback->file_pos() != (uint64_t)pos) {
 				playback->file_seek(pos);
@@ -45,7 +46,7 @@ public:
 		return -1;
 	}
 
-	virtual int Length(long long *total, long long *available) {
+	int Length(long long *total, long long *available) override {
 		if (playback) {
 			const uint64_t len = playback->file_len();
 			if (total) {
@@ -60,17 +61,11 @@ public:
 	}
 };
 
-void godot::VideoStreamPlaybackReference::_bind_methods() {
-}
+void godot::VideoStreamPlaybackReference::_bind_methods() {}
 
 void godot::VideoStreamPlaybackReference::_stop() {
-
-	WARN_PRINT("STOP");
-	
 	if (playing) {
 		delete_pointers();
-
-		pcm = nullptr;
 
 		audio_frame = nullptr;
 		video_frames = nullptr;
@@ -92,11 +87,9 @@ void godot::VideoStreamPlaybackReference::_stop() {
 void godot::VideoStreamPlaybackReference::_play() {
 	_stop();
 
-	WARN_PRINT("PLAY");
-
 	delay_compensation = ProjectSettings::get_singleton()->get("audio/video/video_delay_compensation_ms");
 	delay_compensation /= 1000.0;
-
+	
 	playing = true;
 }
 
@@ -104,8 +97,8 @@ bool godot::VideoStreamPlaybackReference::_is_playing() const {
 	return playing;
 }
 
-void godot::VideoStreamPlaybackReference::_set_paused(bool paused) {
-	this->paused = paused;
+void godot::VideoStreamPlaybackReference::_set_paused(bool p_paused) {
+	this->paused = p_paused;
 }
 
 bool godot::VideoStreamPlaybackReference::_is_paused() const {
@@ -161,38 +154,37 @@ if ((!playing || paused) || !video) {
 
 	bool audio_buffer_full = false;
 
-	//if (samples_offset > -1) {
-	//	//Mix remaining samples
-	//	const int to_read = num_decoded_samples - samples_offset;
-	//	//const int mixed = mix_callback(mix_udata, pcm + samples_offset * webm->getChannels(), to_read);
-	//	if (mixed != to_read) {
-	//		samples_offset += mixed;
-	//		audio_buffer_full = true;
-	//	} else {
-	//		samples_offset = -1;
-	//	}
-	//}
+	if (samples_offset > -1) {
+		//Mix remaining samples
+		const int to_read = num_decoded_samples - samples_offset;
+		const int mixed = mix_audio(to_read, pcm, samples_offset * webm->getChannels());
+		if (mixed != to_read) {
+			samples_offset += mixed;
+			audio_buffer_full = true;
+		} else {
+			samples_offset = -1;
+		}
+	}
 
-	const bool hasAudio = false; //(audio && mix_callback);
+	const bool hasAudio = audio && (mix_audio(-1) != -1);
 	while ((hasAudio && !audio_buffer_full && !has_enough_video_frames()) ||
 			(!hasAudio && video_frames_pos == 0)) {
 		if (hasAudio && !audio_buffer_full && audio_frame->isValid() &&
-				audio->getPCMF(*audio_frame, pcm, num_decoded_samples) && num_decoded_samples > 0) {
-			//const int mixed = mix_callback(mix_udata, pcm, num_decoded_samples);
+				audio->getPCMF(*audio_frame, pcm.ptrw(), num_decoded_samples) && num_decoded_samples > 0) {
+			const int mixed = mix_audio(num_decoded_samples, pcm);
 
-			/*if (mixed != num_decoded_samples) {
+			if (mixed != num_decoded_samples) {
 				samples_offset = mixed;
 				audio_buffer_full = true;
-			}*/
+			}
 		}
 
-		WebMFrame *video_frame;
 		if (video_frames_pos >= video_frames_capacity) {
-			WebMFrame **video_frames_new = (WebMFrame **)memrealloc(video_frames, ++video_frames_capacity * sizeof(void *));
+			WebMFrame **video_frames_new = static_cast<WebMFrame **>(memrealloc(video_frames, ++video_frames_capacity * sizeof(void *)));
 			ERR_FAIL_COND(!video_frames_new); //Out of memory
 			(video_frames = video_frames_new)[video_frames_capacity - 1] = memnew(WebMFrame);
 		}
-		video_frame = video_frames[video_frames_pos];
+		WebMFrame *video_frame = video_frames[video_frames_pos];
 
 		if (!webm->readFrame(video_frame, audio_frame)) { //This will invalidate frames
 			break; //Can't demux, EOS?
@@ -274,11 +266,21 @@ if ((!playing || paused) || !video) {
 }
 
 int64_t godot::VideoStreamPlaybackReference::_get_channels() const {
+	if (audio) {
+		return webm->getChannels();
+	}
 	return 0;
 }
 
 int64_t godot::VideoStreamPlaybackReference::_get_mix_rate() const {
-	return 0;
+	return static_cast<int64_t>(get_sample_rate());
+}
+
+double godot::VideoStreamPlaybackReference::get_sample_rate() const {
+	if (audio) {
+		return webm->getSampleRate();
+	}
+	return 0.0;
 }
 
 inline bool godot::VideoStreamPlaybackReference::has_enough_video_frames() const {
@@ -294,9 +296,6 @@ inline bool godot::VideoStreamPlaybackReference::has_enough_video_frames() const
 }
 
 void godot::VideoStreamPlaybackReference::delete_pointers() {
-	if (pcm) {
-		memfree(pcm);
-	}
 
 	if (audio_frame) {
 		memdelete(audio_frame);
@@ -323,6 +322,7 @@ void godot::VideoStreamPlaybackReference::delete_pointers() {
 void godot::VideoStreamPlaybackReference::_initialize() {
 	if (!initialized) {
 		texture.instantiate();
+
 		initialized = true;
 	}
 }
@@ -343,13 +343,14 @@ bool godot::VideoStreamPlaybackReference::_file_opened() {
 			audio = memnew(OpusVorbisDecoder(*webm));
 			if (audio->isOpen()) {
 				audio_frame = memnew(WebMFrame);
-				pcm = (float *)memalloc(sizeof(float) * audio->getBufferSamples() * webm->getChannels());
+				pcm.resize(1i64 * audio->getBufferSamples() * webm->getChannels());
+
 			} else {
 				memdelete(audio);
 				audio = nullptr;
 			}
 
-			frame_data.resize((webm->getWidth() * webm->getHeight()) << 2);
+			frame_data.resize(4i64 * webm->getWidth() * webm->getHeight());
 			Ref<Image> img;
 			img.instantiate();
 			img->create(webm->getWidth(), webm->getHeight(), false, Image::FORMAT_RGBA8);
@@ -366,9 +367,9 @@ bool godot::VideoStreamPlaybackReference::_file_opened() {
 }
 
 godot::VideoStreamPlaybackReference::VideoStreamPlaybackReference() {
-	_initialize();
+	VideoStreamPlaybackReference::_initialize();
 }
 
 godot::VideoStreamPlaybackReference::~VideoStreamPlaybackReference() {
-	_cleanup();
+	VideoStreamPlaybackReference::_cleanup();
 }

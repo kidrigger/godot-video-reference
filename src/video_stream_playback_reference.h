@@ -27,7 +27,6 @@ class VideoStreamPlaybackReference : public VideoStreamPlaybackExtension {
 	int video_frames_pos = 0, video_frames_capacity = 0;
 
 	int num_decoded_samples = 0, samples_offset = -1;
-	void *mix_udata = nullptr;
 
 	bool playing = false, paused = false;
 	double delay_compensation = 0.0;
@@ -36,7 +35,7 @@ class VideoStreamPlaybackReference : public VideoStreamPlaybackExtension {
 	PackedByteArray frame_data;
 	Ref<ImageTexture> texture;
 
-	float *pcm = nullptr;
+	PackedFloat32Array pcm;
 
 protected:
 	static void _bind_methods();
@@ -62,6 +61,7 @@ public:
 	virtual void _update(double delta) override;
 	virtual int64_t _get_channels() const override;
 	virtual int64_t _get_mix_rate() const override;
+	double get_sample_rate() const;
 	bool has_enough_video_frames() const;
 	virtual void _initialize() override;
 	virtual void _cleanup() override;

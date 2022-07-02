@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import platform
 import sys
 
 # Try to detect the host platform automatically.
@@ -45,6 +46,52 @@ bits = 64
 opts.Update(env)
 # Generates help for the -h scons option.
 Help(opts.GenerateHelpText(env))
+
+architecture_array = ["", "universal", "x86_32", "x86_64", "arm32", "arm64", "rv64", "ppc32", "ppc64", "wasm32"]
+architecture_aliases = {
+    "x64": "x86_64",
+    "amd64": "x86_64",
+    "armv7": "arm32",
+    "armv8": "arm64",
+    "arm64v8": "arm64",
+    "aarch64": "arm64",
+    "rv": "rv64",
+    "riscv": "rv64",
+    "riscv64": "rv64",
+    "ppcle": "ppc32",
+    "ppc": "ppc32",
+    "ppc64le": "ppc64",
+}
+opts.Add(EnumVariable("arch", "CPU architecture", "", architecture_array, architecture_aliases))
+
+opts.Update(env)
+Help(opts.GenerateHelpText(env))
+
+if env['arch'] == "":
+    # No architecture specified. Default to arm64 if building for Android,
+    # universal if building for macOS or iOS, wasm32 if building for web,
+    # otherwise default to the host architecture.
+    if env["platform"] in ["osx", "ios"]:
+        env["arch"] = "universal"
+    elif env["platform"] == "android":
+        env["arch"] = "arm64"
+    elif env["platform"] == "javascript":
+        env["arch"] = "wasm32"
+    else:
+        host_machine = platform.machine().lower()
+        if host_machine in architecture_array:
+            env["arch"] = host_machine
+        elif host_machine in architecture_aliases.keys():
+            env["arch"] = architecture_aliases[host_machine]
+        elif "86" in host_machine:
+            # Catches x86, i386, i486, i586, i686, etc.
+            env["arch"] = "x86_32"
+        else:
+            print("Unsupported CPU architecture: " + host_machine)
+            Exit()
+
+# We use this to re-set env["arch"] anytime we call opts.Update(env).
+env_arch = env["arch"]
 
 # This makes sure to keep the session environment variables on Windows.
 # This way, you can run SCons in a Visual Studio 2017 prompt and it will find
@@ -133,7 +180,7 @@ if env["target"] in ("debug", "d"):
 else:
     cpp_library += ".release"
 
-cpp_library += "." + str(bits)
+cpp_library += "." + str(env_arch)
 
 # make sure our binding library is properly includes
 env.Append(CPPPATH=[".", godot_headers_path, cpp_bindings_path + "include/", cpp_bindings_path + "gen/include/"])

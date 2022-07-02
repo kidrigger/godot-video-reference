@@ -15,23 +15,28 @@ using namespace godot;
 
 Ref<VideoStreamReference> interface_ref;
 
-void register_types() {
+void register_types(godot::ModuleInitializationLevel init_level) {
+	if (init_level != godot::ModuleInitializationLevel::MODULE_INITIALIZATION_LEVEL_SERVERS) return;
+
 	ClassDB::register_class<VideoStreamPlaybackReference>();
 	ClassDB::register_class<VideoStreamReference>();
 
 	interface_ref.instantiate();
-	
-	VideoDecoderServer* p_server = VideoDecoderServer::get_singleton();
-	ERR_FAIL_NULL(p_server);
-	p_server->add_interface(interface_ref);
+
+	// VideoDecoderServer *p_server = VideoDecoderServer::get_singleton();
+	// ERR_FAIL_NULL(p_server);
+
+	VideoDecoderServer::add_interface(interface_ref);
 }
 
-void unregister_types() {
-	if (interface_ref.is_valid()) {
-		VideoDecoderServer* p_server = VideoDecoderServer::get_singleton();
-		ERR_FAIL_NULL(p_server);
+void unregister_types(godot::ModuleInitializationLevel init_level) {
+	if (init_level != godot::ModuleInitializationLevel::MODULE_INITIALIZATION_LEVEL_SERVERS) return;
 
-		p_server->remove_interface(interface_ref);
+	if (interface_ref.is_valid()) {
+		// VideoDecoderServer *p_server = VideoDecoderServer::get_singleton();
+		// ERR_FAIL_NULL(p_server);
+
+		VideoDecoderServer::remove_interface(interface_ref);
 		interface_ref.unref();
 	}
 }

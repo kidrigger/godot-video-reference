@@ -9,6 +9,7 @@ void godot::VideoStreamReference::_bind_methods() {
 godot::Ref<godot::VideoStreamPlaybackExtension> godot::VideoStreamReference::_instance_playback() {
 	Ref<VideoStreamPlaybackReference> ref;
 	ref.instantiate();
+	ref->reference();
 	return ref;
 }
 

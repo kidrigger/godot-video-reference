@@ -23,9 +23,6 @@ void register_types(godot::ModuleInitializationLevel init_level) {
 
 	interface_ref.instantiate();
 
-	// VideoDecoderServer *p_server = VideoDecoderServer::get_singleton();
-	// ERR_FAIL_NULL(p_server);
-
 	VideoDecoderServer::add_interface(interface_ref);
 }
 
@@ -33,8 +30,6 @@ void unregister_types(godot::ModuleInitializationLevel init_level) {
 	if (init_level != godot::ModuleInitializationLevel::MODULE_INITIALIZATION_LEVEL_SERVERS) return;
 
 	if (interface_ref.is_valid()) {
-		// VideoDecoderServer *p_server = VideoDecoderServer::get_singleton();
-		// ERR_FAIL_NULL(p_server);
 
 		VideoDecoderServer::remove_interface(interface_ref);
 		interface_ref.unref();

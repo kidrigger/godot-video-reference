@@ -176,9 +176,11 @@ elif env["platform"] == "windows":
         env.Append(CPPDEFINES=["TYPED_METHOD_BIND"])
 
 if env["target"] in ("debug", "d"):
-    cpp_library += ".debug"
+    cpp_library += ".template_debug"
+elif env["target"] in ("editor", "e"):
+    cpp_library += ".editor"
 else:
-    cpp_library += ".release"
+    cpp_library += ".template_release"
 
 cpp_library += "." + str(env_arch)
 
@@ -209,10 +211,10 @@ env.includes = includes
 def add_source_files(self, arr, regex):
     if type(regex) == list:
         arr += regex
-        print(arr)
+        # print(arr)
     elif type(regex) == str:
         arr += glob_filenames(regex)
-        print(arr)
+        # print(arr)
 
 
 env.__class__.add_source_files = add_source_files 
@@ -237,7 +239,7 @@ if env["test"]:
 
 library = env.SharedLibrary(target = lib_target + env["target_name"], source=env.sources+env.modules_sources)
 
-print (env.modules_sources)
+# print (env.modules_sources)
 
 if env["vsproj"]:
     vsproj = env.MSVSProject(target = 'godot_video_reference' + env['MSVSPROJECTSUFFIX'],

@@ -3,14 +3,11 @@
 #include "video_stream_playback_reference.h"
 
 void godot::VideoStreamReference::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("get_plugin_name"), &VideoStreamReference::get_plugin_name);
 }
 
-godot::Ref<godot::VideoStreamPlaybackExtension> godot::VideoStreamReference::_instance_playback() {
-	Ref<VideoStreamPlaybackReference> ref;
-	ref.instantiate();
-	ref->reference();
-	return ref;
+godot::Object *godot::VideoStreamReference::_instantiate_playback() {
+	VideoStreamPlaybackReference *ref = memnew(VideoStreamPlaybackReference());
+	return static_cast<Object *>(ref);
 }
 
 godot::PackedStringArray godot::VideoStreamReference::_get_supported_extensions() const {
@@ -22,7 +19,7 @@ godot::PackedStringArray godot::VideoStreamReference::_get_supported_extensions(
 void godot::VideoStreamReference::_initialize() {}
 void godot::VideoStreamReference::_cleanup() {}
 
-godot::String godot::VideoStreamReference::get_plugin_name() {
+godot::String godot::VideoStreamReference::_get_plugin_name() const {
 	return "Godot GDExtension VideoDecoder Reference";
 }
 

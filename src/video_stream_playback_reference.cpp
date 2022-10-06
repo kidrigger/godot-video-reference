@@ -1,11 +1,10 @@
 
 #include "video_stream_playback_reference.h"
-
 #include "video_stream_reference.h"
 
-#include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/os.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/core/class_db.hpp>
 
 #include <yuv2rgb.h>
 
@@ -22,12 +21,13 @@
 #include <godot_cpp/classes/audio_server.hpp>
 
 class MkvReader : public mkvparser::IMkvReader {
-	godot::VideoStreamPlaybackReference* playback;
-	
+	godot::VideoStreamPlaybackReference *playback;
+
 public:
-	MkvReader(godot::VideoStreamPlaybackReference* pb) : playback(pb) {
+	MkvReader(godot::VideoStreamPlaybackReference *pb) :
+			playback(pb) {
 	}
-	
+
 	virtual ~MkvReader() {
 	}
 
@@ -36,7 +36,7 @@ public:
 			if (playback->file_pos() != (uint64_t)pos) {
 				playback->file_seek(pos);
 			}
-			
+
 			const auto data_buffer = playback->file_read(len);
 			if (data_buffer.size() == len) {
 				memmove(buf, data_buffer.ptr(), len);
@@ -73,7 +73,7 @@ void godot::VideoStreamPlaybackReference::_stop() {
 		video = nullptr;
 		audio = nullptr;
 
-		file_seek(0); //Should not fail here...
+		file_seek(0); // Should not fail here...
 
 		video_frames_capacity = video_frames_pos = 0;
 		num_decoded_samples = 0;
@@ -89,7 +89,7 @@ void godot::VideoStreamPlaybackReference::_play() {
 
 	delay_compensation = ProjectSettings::get_singleton()->get("audio/video/video_delay_compensation_ms");
 	delay_compensation /= 1000.0;
-	
+
 	playing = true;
 }
 
@@ -137,12 +137,12 @@ bool godot::VideoStreamPlaybackReference::should_process(WebMFrame &video_frame)
 	// FIXME: AudioServer output latency was fixed in af9bb0e, previously it used to
 	// systematically return 0. Now that it gives a proper latency, it broke this
 	// code where the delay compensation likely never really worked.
-	//const double audio_delay = AudioServer::get_singleton()->get_output_latency();
+	// const double audio_delay = AudioServer::get_singleton()->get_output_latency();
 	return video_frame.time >= time + /* audio_delay + */ delay_compensation;
 }
 
 void godot::VideoStreamPlaybackReference::_update(double p_delta) {
-if ((!playing || paused) || !video) {
+	if ((!playing || paused) || !video) {
 		return;
 	}
 
@@ -155,7 +155,7 @@ if ((!playing || paused) || !video) {
 	bool audio_buffer_full = false;
 
 	if (samples_offset > -1) {
-		//Mix remaining samples
+		// Mix remaining samples
 		const int to_read = num_decoded_samples - samples_offset;
 		const int mixed = mix_audio(to_read, pcm, samples_offset * webm->getChannels());
 		if (mixed != to_read) {
@@ -181,13 +181,13 @@ if ((!playing || paused) || !video) {
 
 		if (video_frames_pos >= video_frames_capacity) {
 			WebMFrame **video_frames_new = static_cast<WebMFrame **>(memrealloc(video_frames, ++video_frames_capacity * sizeof(void *)));
-			ERR_FAIL_COND(!video_frames_new); //Out of memory
+			ERR_FAIL_COND(!video_frames_new); // Out of memory
 			(video_frames = video_frames_new)[video_frames_capacity - 1] = memnew(WebMFrame);
 		}
 		WebMFrame *video_frame = video_frames[video_frames_pos];
 
-		if (!webm->readFrame(video_frame, audio_frame)) { //This will invalidate frames
-			break; //Can't demux, EOS?
+		if (!webm->readFrame(video_frame, audio_frame)) { // This will invalidate frames
+			break; // Can't demux, EOS?
 		}
 
 		if (video_frame->isValid()) {
@@ -229,25 +229,25 @@ if ((!playing || paused) || !video) {
 							converted = true;
 						} else if (image.chromaShiftW == 1 && image.chromaShiftH == 1) {
 							yuv420_2_rgb8888(w, image.planes[0], image.planes[1], image.planes[2], image.w, image.h, image.linesize[0], image.linesize[1], image.w << 2);
-							//libyuv::I420ToARGB(image.planes[0], image.linesize[0], image.planes[2], image.linesize[2], image.planes[1], image.linesize[1], w.ptr(), image.w << 2, image.w, image.h);
+							// libyuv::I420ToARGB(image.planes[0], image.linesize[0], image.planes[2], image.linesize[2], image.planes[1], image.linesize[1], w.ptr(), image.w << 2, image.w, image.h);
 							converted = true;
 						} else if (image.chromaShiftW == 1 && image.chromaShiftH == 0) {
 							yuv422_2_rgb8888(w, image.planes[0], image.planes[1], image.planes[2], image.w, image.h, image.linesize[0], image.linesize[1], image.w << 2);
-							//libyuv::I422ToARGB(image.planes[0], image.linesize[0], image.planes[2], image.linesize[2], image.planes[1], image.linesize[1], w.ptr(), image.w << 2, image.w, image.h);
+							// libyuv::I422ToARGB(image.planes[0], image.linesize[0], image.planes[2], image.linesize[2], image.planes[1], image.linesize[1], w.ptr(), image.w << 2, image.w, image.h);
 							converted = true;
 						} else if (image.chromaShiftW == 0 && image.chromaShiftH == 0) {
 							yuv444_2_rgb8888(w, image.planes[0], image.planes[1], image.planes[2], image.w, image.h, image.linesize[0], image.linesize[1], image.w << 2);
-							//libyuv::I444ToARGB(image.planes[0], image.linesize[0], image.planes[2], image.linesize[2], image.planes[1], image.linesize[1], w.ptr(), image.w << 2, image.w, image.h);
+							// libyuv::I444ToARGB(image.planes[0], image.linesize[0], image.planes[2], image.linesize[2], image.planes[1], image.linesize[1], w.ptr(), image.w << 2, image.w, image.h);
 							converted = true;
 						} else if (image.chromaShiftW == 2 && image.chromaShiftH == 0) {
-							//libyuv::I411ToARGB(image.planes[0], image.linesize[0], image.planes[2], image.linesize[2] image.planes[1], image.linesize[1], w.ptr(), image.w << 2, image.w, image.h);
-							//converted = true;
+							// libyuv::I411ToARGB(image.planes[0], image.linesize[0], image.planes[2], image.linesize[2] image.planes[1], image.linesize[1], w.ptr(), image.w << 2, image.w, image.h);
+							// converted = true;
 						}
 
 						if (converted) {
 							Ref<Image> img = memnew(Image());
 							img->create_from_data(image.w, image.h, 0, Image::FORMAT_RGBA8, frame_data);
-							texture->update(img); //Zero copy send to rendering server
+							texture->update(img); // Zero copy send to rendering server
 							video_frame_done = true;
 						}
 					}
@@ -288,7 +288,7 @@ inline bool godot::VideoStreamPlaybackReference::has_enough_video_frames() const
 		// FIXME: AudioServer output latency was fixed in af9bb0e, previously it used to
 		// systematically return 0. Now that it gives a proper latency, it broke this
 		// code where the delay compensation likely never really worked.
-		//const double audio_delay = AudioServer::get_singleton()->get_output_latency();
+		// const double audio_delay = AudioServer::get_singleton()->get_output_latency();
 		const double video_time = video_frames[video_frames_pos - 1]->time;
 		return video_time >= time + /* audio_delay + */ delay_compensation;
 	}
@@ -321,7 +321,7 @@ void godot::VideoStreamPlaybackReference::delete_pointers() {
 
 void godot::VideoStreamPlaybackReference::_initialize() {
 	if (!initialized) {
-		texture.instantiate();
+		texture = Ref<ImageTexture>(memnew(ImageTexture));
 
 		initialized = true;
 	}
@@ -354,7 +354,7 @@ bool godot::VideoStreamPlaybackReference::_file_opened() {
 			Ref<Image> img;
 			img.instantiate();
 			img->create(webm->getWidth(), webm->getHeight(), false, Image::FORMAT_RGBA8);
-			texture->create_from_image(img);
+			texture->set_image(img);
 
 			return true;
 		}

@@ -9,29 +9,28 @@
 
 #include "video_stream_playback_reference.h"
 #include "video_stream_reference.h"
-#include <godot_cpp/classes/video_decoder_server.hpp>
+#include "video_stream_reference_loader.h"
+
+#include <godot_cpp/classes/resource_loader.hpp>
 
 using namespace godot;
 
-Ref<VideoStreamReference> interface_ref;
+Ref<VideoStreamReferenceLoader> loader;
 
 void register_types(godot::ModuleInitializationLevel init_level) {
-	if (init_level != godot::ModuleInitializationLevel::MODULE_INITIALIZATION_LEVEL_SERVERS) return;
+	if (init_level != godot::ModuleInitializationLevel::MODULE_INITIALIZATION_LEVEL_SCENE) return;
 
-	ClassDB::register_class<VideoStreamPlaybackReference>();
-	ClassDB::register_class<VideoStreamReference>();
+	GDREGISTER_CLASS(VideoStreamReferenceLoader);
+	GDREGISTER_CLASS(VideoStreamReference);
+	GDREGISTER_CLASS(VideoStreamPlaybackReference);
 
-	interface_ref.instantiate();
-
-	VideoDecoderServer::add_interface(interface_ref);
+	loader.instantiate();
+	ResourceLoader::get_singleton()->add_resource_format_loader(loader, true);
 }
 
 void unregister_types(godot::ModuleInitializationLevel init_level) {
-	if (init_level != godot::ModuleInitializationLevel::MODULE_INITIALIZATION_LEVEL_SERVERS) return;
+	if (init_level != godot::ModuleInitializationLevel::MODULE_INITIALIZATION_LEVEL_SCENE) return;
 
-	if (interface_ref.is_valid()) {
-
-		VideoDecoderServer::remove_interface(interface_ref);
-		interface_ref.unref();
-	}
+	ResourceLoader::get_singleton()->remove_resource_format_loader(loader);
+	loader.unref();
 }

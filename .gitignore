@@ -1,3 +1,6 @@
+# Helper scripts
+*.ps1
+
 # Godot auto generated files
 *.gen.*
 .import/

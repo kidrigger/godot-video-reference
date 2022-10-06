@@ -1,9 +1,9 @@
 #ifndef VIDEO_STREAM_PLAYBACK_REFERENCE_H
 #define VIDEO_STREAM_PLAYBACK_REFERENCE_H
 
-#include <godot_cpp/classes/video_stream_playback_extension.hpp>
-#include <godot_cpp/classes/image_texture.hpp>
 #include <deque>
+#include <godot_cpp/classes/image_texture.hpp>
+#include <godot_cpp/classes/video_stream_playback.hpp>
 
 class WebMFrame;
 class WebMDemuxer;
@@ -12,8 +12,8 @@ class OpusVorbisDecoder;
 
 namespace godot {
 
-class VideoStreamPlaybackReference : public VideoStreamPlaybackExtension {
-	GDCLASS(VideoStreamPlaybackReference, VideoStreamPlaybackExtension)
+class VideoStreamPlaybackReference : public VideoStreamPlayback {
+	GDCLASS(VideoStreamPlaybackReference, VideoStreamPlayback)
 
 	String file_name;
 	int audio_track = 0;
@@ -22,8 +22,8 @@ class VideoStreamPlaybackReference : public VideoStreamPlaybackExtension {
 	VPXDecoder *video = nullptr;
 	OpusVorbisDecoder *audio = nullptr;
 
-	WebMFrame** video_frames = nullptr;
-	WebMFrame*audio_frame = nullptr;
+	WebMFrame **video_frames = nullptr;
+	WebMFrame *audio_frame = nullptr;
 	int video_frames_pos = 0, video_frames_capacity = 0;
 
 	int num_decoded_samples = 0, samples_offset = -1;
@@ -43,6 +43,7 @@ protected:
 	friend class VideoStreamReference;
 
 	bool initialized = false;
+
 public:
 	void delete_pointers();
 	virtual void _stop() override;
@@ -71,6 +72,6 @@ public:
 	VideoStreamPlaybackReference();
 	~VideoStreamPlaybackReference() override;
 };
-}
+} // namespace godot
 
 #endif // VIDEO_STREAM_PLAYBACK_H

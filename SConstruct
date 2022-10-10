@@ -19,7 +19,7 @@ env = Environment(ENV=os.environ)
 opts = Variables([], ARGUMENTS)
 
 # Define our options
-opts.Add(EnumVariable("target", "Compilation target", "debug", ["d", "debug", "r", "release"]))
+opts.Add(EnumVariable("target", "Compilation target", "debug", ["e", "editor", "d", "debug", "r", "release"]))
 opts.Add(EnumVariable("platform", "Compilation platform", host_platform, ["", "windows", "x11", "linux", "osx"]))
 opts.Add(
     EnumVariable("p", "Compilation target, alias for 'platform'", host_platform, ["", "windows", "x11", "linux", "osx"])
@@ -27,6 +27,7 @@ opts.Add(
 opts.Add(EnumVariable("bits", "Target platform bits", "64", ("32", "64")))
 opts.Add(BoolVariable("use_llvm", "Use the LLVM / Clang compiler", "no"))
 opts.Add(BoolVariable("test", "Build to test dir", "yes"))
+opts.Add(BoolVariable("dev_build", "Debug symbols", "yes"))
 opts.Add(PathVariable("target_path", "The path where the lib is installed.", "bin/", PathVariable.PathAccept))
 opts.Add(PathVariable("test_path", "The path where the test is installed.", "test/addons/godot_video_reference/bin/", PathVariable.PathAccept))
 opts.Add(PathVariable("target_name", "The library name.", "libgdvideo", PathVariable.PathAccept))
@@ -161,10 +162,10 @@ elif env["platform"] == "windows":
     # that way you can run scons in a vs 2017 prompt and it will find all the required tools
     env.Append(ENV=os.environ)
 
-    env.Append(CPPDEFINES=["WIN32", "_WIN32", "_WINDOWS", "_CRT_SECURE_NO_WARNINGS"])
+    env.Append(CPPDEFINES=["WIN32", "_WIN32", "_WINDOWS", "_CRT_SECURE_NO_WARNINGS", "_ITERATOR_DEBUG_LEVEL=2"])
     env.Append(CCFLAGS=["-W3", "-GR"])
     env.Append(CXXFLAGS=["-std:c++17"])
-    if env["target"] in ("debug", "d"):
+    if env["target"] in ("debug", "d", "editor", "e"):
         env.Append(CPPDEFINES=["_DEBUG"])
         env.Append(CCFLAGS=["-EHsc", "-MDd", "-ZI", "-FS"])
         env.Append(LINKFLAGS=["-DEBUG", "/MACHINE:" + env['msvc_arch']])
@@ -181,6 +182,9 @@ elif env["target"] in ("editor", "e"):
     cpp_library += ".editor"
 else:
     cpp_library += ".template_release"
+
+if env["dev_build"]:
+    cpp_library += ".dev"
 
 cpp_library += "." + str(env_arch)
 

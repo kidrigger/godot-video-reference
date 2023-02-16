@@ -36,7 +36,7 @@ opts.Add(BoolVariable("builtin_opus", "Use Built-in Opus", "yes"))
 opts.Add(BoolVariable("builtin_libogg", "Use Built-in LibOgg", "yes"))
 
 # Local dependency paths, adapt them to your setup
-godot_headers_path = "godot-cpp/godot-headers/"
+godot_headers_path = "godot-cpp/gdextension/"
 cpp_bindings_path = "godot-cpp/"
 cpp_library = "libgodot-cpp"
 
@@ -127,7 +127,7 @@ if env["platform"] == "":
 # - CPPDEFINES are for pre-processor defines
 # - LINKFLAGS are for linking flags
 
-if env["target"] == "debug":
+if env["target"] in ("debug", "editor"):
     env.Append(CPPDEFINES=["DEBUG_ENABLED", "DEBUG_METHODS_ENABLED"])
 
 # Check our platform specifics
@@ -137,8 +137,8 @@ if env["platform"] == "osx":
     cpp_library += ".osx"
     env.Append(CCFLAGS=["-arch", "x86_64"])
     env.Append(CXXFLAGS=["-std=c++17"])
-    env.Append(LINKFLAGS=["-arch", "x86_64"])
-    if env["target"] in ("debug", "d"):
+    env.Append(LINKFLAGS=["-arch", "x86_64", "-ldl"])
+    if env["target"] in ("debug", "d", "editor", "e"):
         env.Append(CCFLAGS=["-g", "-O2"])
     else:
         env.Append(CCFLAGS=["-g", "-O3"])
@@ -149,8 +149,8 @@ elif env["platform"] in ("x11", "linux"):
     cpp_library += ".linux"
     env.Append(CCFLAGS=["-fPIC"])
     env.Append(CXXFLAGS=["-std=c++17"])
-    if env["target"] in ("debug", "d"):
-        env.Append(CCFLAGS=["-g3", "-Og"])
+    if env["target"] in ("debug", "d", "editor", "e"):
+        env.Append(CCFLAGS=["-g", "-O2"])
     else:
         env.Append(CCFLAGS=["-g", "-O3"])
 
@@ -220,7 +220,6 @@ def add_source_files(self, arr, regex):
         arr += glob_filenames(regex)
         # print(arr)
 
-
 env.__class__.add_source_files = add_source_files 
 
 SConscript("thirdparty/SCsub")
@@ -231,7 +230,7 @@ env.Prepend(CPPPATH=["thirdparty/libsimplewebm/libwebm"])
 env.Prepend(CPPPATH=["thirdparty/libvpx"])
 
 target_name = ""
-if env["target"] in ("debug","d"):
+if env["target"] in ("debug","d", "editor", "e"):
     lib_target = env["target_path"]
     target_name = "Debug"
 else:

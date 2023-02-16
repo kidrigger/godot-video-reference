@@ -1,11 +1,14 @@
 
 #include "video_stream_playback_reference.h"
+#include "godot_cpp/core/error_macros.hpp"
 #include "video_stream_reference.h"
 
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/classes/file_access.hpp>
 
+#include <bits/stdint-intn.h>
 #include <yuv2rgb.h>
 
 // libsimplewebm
@@ -20,35 +23,30 @@
 
 #include <godot_cpp/classes/audio_server.hpp>
 
+namespace godot {
 class MkvReader : public mkvparser::IMkvReader {
-	godot::VideoStreamPlaybackReference *playback;
-
 public:
-	MkvReader(godot::VideoStreamPlaybackReference *pb) :
-			playback(pb) {
+	MkvReader(const String &p_file) {
+		file = FileAccess::open(p_file, FileAccess::READ);
+
+		ERR_FAIL_COND_MSG(file.is_null(), "Failed loading resource: '" + p_file + "'.");
 	}
 
-	virtual ~MkvReader() {
-	}
-
-	int Read(long long pos, long len, unsigned char *buf) override {
-		if (playback) {
-			if (playback->file_pos() != (uint64_t)pos) {
-				playback->file_seek(pos);
+	virtual int Read(long long pos, long len, unsigned char *buf) {
+		if (file.is_valid()) {
+			if (file->get_position() != (uint64_t)pos) {
+				file->seek(pos);
 			}
-
-			const auto data_buffer = playback->file_read(len);
-			if (data_buffer.size() == len) {
-				memmove(buf, data_buffer.ptr(), len);
+			if (file->get_buffer(buf, len) == (uint64_t)len) {
 				return 0;
 			}
 		}
 		return -1;
 	}
 
-	int Length(long long *total, long long *available) override {
-		if (playback) {
-			const uint64_t len = playback->file_len();
+	virtual int Length(long long *total, long long *available) {
+		if (file.is_valid()) {
+			const uint64_t len = file->get_length();
 			if (total) {
 				*total = len;
 			}
@@ -59,7 +57,11 @@ public:
 		}
 		return -1;
 	}
+
+private:
+	Ref<FileAccess> file;
 };
+}
 
 void godot::VideoStreamPlaybackReference::_bind_methods() {}
 
@@ -73,7 +75,7 @@ void godot::VideoStreamPlaybackReference::_stop() {
 		video = nullptr;
 		audio = nullptr;
 
-		file_seek(0); // Should not fail here...
+		open_file(file_name); // Should not fail here...
 
 		video_frames_capacity = video_frames_pos = 0;
 		num_decoded_samples = 0;
@@ -105,13 +107,6 @@ bool godot::VideoStreamPlaybackReference::_is_paused() const {
 	return paused;
 }
 
-void godot::VideoStreamPlaybackReference::_set_loop(bool enable) {
-}
-
-bool godot::VideoStreamPlaybackReference::_has_loop() const {
-	return false;
-}
-
 double godot::VideoStreamPlaybackReference::_get_length() const {
 	if (webm) {
 		return webm->getLength();
@@ -126,7 +121,7 @@ double godot::VideoStreamPlaybackReference::_get_playback_position() const {
 void godot::VideoStreamPlaybackReference::_seek(double time) {
 }
 
-void godot::VideoStreamPlaybackReference::_set_audio_track(int64_t idx) {
+void godot::VideoStreamPlaybackReference::_set_audio_track(int32_t idx) {
 }
 
 godot::Ref<godot::Texture2D> godot::VideoStreamPlaybackReference::_get_texture() const {
@@ -245,8 +240,8 @@ void godot::VideoStreamPlaybackReference::_update(double p_delta) {
 						}
 
 						if (converted) {
-							Ref<Image> img = memnew(Image());
-							img->create_from_data(image.w, image.h, 0, Image::FORMAT_RGBA8, frame_data);
+							Ref<Image> img = Image::create_from_data(image.w, image.h, 0, Image::FORMAT_RGBA8, frame_data);
+							if (texture.is_null()) WARN_PRINT("TEXNUL");
 							texture->update(img); // Zero copy send to rendering server
 							video_frame_done = true;
 						}
@@ -265,22 +260,18 @@ void godot::VideoStreamPlaybackReference::_update(double p_delta) {
 	}
 }
 
-int64_t godot::VideoStreamPlaybackReference::_get_channels() const {
+int32_t godot::VideoStreamPlaybackReference::_get_channels() const {
 	if (audio) {
 		return webm->getChannels();
 	}
 	return 0;
 }
 
-int64_t godot::VideoStreamPlaybackReference::_get_mix_rate() const {
-	return static_cast<int64_t>(get_sample_rate());
-}
-
-double godot::VideoStreamPlaybackReference::get_sample_rate() const {
+int32_t godot::VideoStreamPlaybackReference::_get_mix_rate() const {
 	if (audio) {
-		return webm->getSampleRate();
+		return static_cast<int32_t>(webm->getSampleRate());
 	}
-	return 0.0;
+	return 0;
 }
 
 inline bool godot::VideoStreamPlaybackReference::has_enough_video_frames() const {
@@ -319,42 +310,23 @@ void godot::VideoStreamPlaybackReference::delete_pointers() {
 	}
 }
 
-void godot::VideoStreamPlaybackReference::_initialize() {
-	if (!initialized) {
-		texture = Ref<ImageTexture>(memnew(ImageTexture));
-
-		initialized = true;
-	}
-}
-
-void godot::VideoStreamPlaybackReference::_cleanup() {
-	if (initialized) {
-		delete_pointers();
-		texture.unref();
-		initialized = false;
-	}
-}
-
-bool godot::VideoStreamPlaybackReference::_file_opened() {
-	webm = memnew(WebMDemuxer(new MkvReader(this), 0, audio_track));
+bool godot::VideoStreamPlaybackReference::open_file(const String& file_name) {
+	webm = memnew(WebMDemuxer(new MkvReader(file_name), 0, audio_track));
 	if (webm->isOpen()) {
 		video = memnew(VPXDecoder(*webm, OS::get_singleton()->get_processor_count()));
 		if (video->isOpen()) {
 			audio = memnew(OpusVorbisDecoder(*webm));
 			if (audio->isOpen()) {
 				audio_frame = memnew(WebMFrame);
-				pcm.resize(1i64 * audio->getBufferSamples() * webm->getChannels());
-
+				pcm.resize(static_cast<int64_t>(1) * audio->getBufferSamples() * webm->getChannels());
 			} else {
 				memdelete(audio);
 				audio = nullptr;
 			}
 
-			frame_data.resize(4i64 * webm->getWidth() * webm->getHeight());
-			Ref<Image> img;
-			img.instantiate();
-			img->create(webm->getWidth(), webm->getHeight(), false, Image::FORMAT_RGBA8);
-			texture->set_image(img);
+			frame_data.resize((webm->getWidth() * webm->getHeight()) << 2);
+			Ref<Image> img = Image::create(webm->getWidth(), webm->getHeight(), false, Image::FORMAT_RGBA8);
+			texture = ImageTexture::create_from_image(img);
 
 			return true;
 		}
@@ -367,9 +339,16 @@ bool godot::VideoStreamPlaybackReference::_file_opened() {
 }
 
 godot::VideoStreamPlaybackReference::VideoStreamPlaybackReference() {
-	VideoStreamPlaybackReference::_initialize();
+	if (!initialized) {
+		texture = Ref<ImageTexture>(memnew(ImageTexture));
+		initialized = true;
+	}
 }
 
 godot::VideoStreamPlaybackReference::~VideoStreamPlaybackReference() {
-	VideoStreamPlaybackReference::_cleanup();
+	if (initialized) {
+		delete_pointers();
+		texture.unref();
+		initialized = false;
+	}
 }

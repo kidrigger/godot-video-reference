@@ -1,26 +1,18 @@
 
 #include "video_stream_reference.h"
+#include "godot_cpp/core/error_macros.hpp"
 #include "video_stream_playback_reference.h"
 
 void godot::VideoStreamReference::_bind_methods() {
 }
 
-godot::Object *godot::VideoStreamReference::_instantiate_playback() {
+godot::Ref<godot::VideoStreamPlayback> godot::VideoStreamReference::_instantiate_playback() {
 	VideoStreamPlaybackReference *ref = memnew(VideoStreamPlaybackReference());
-	return static_cast<Object *>(ref);
-}
-
-godot::PackedStringArray godot::VideoStreamReference::_get_supported_extensions() const {
-	PackedStringArray psa;
-	psa.append("webm");
-	return psa;
-}
-
-void godot::VideoStreamReference::_initialize() {}
-void godot::VideoStreamReference::_cleanup() {}
-
-godot::String godot::VideoStreamReference::_get_plugin_name() const {
-	return "Godot GDExtension VideoDecoder Reference";
+	ref->_set_audio_track(audio_track);
+	if (ref->open_file(get_file())) {
+		return ref;
+	}
+	return nullptr;
 }
 
 godot::VideoStreamReference::VideoStreamReference() {}

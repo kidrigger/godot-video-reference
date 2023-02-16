@@ -8,7 +8,6 @@
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 
-#include <bits/stdint-intn.h>
 #include <yuv2rgb.h>
 
 // libsimplewebm

@@ -1,9 +1,12 @@
 [gd_scene load_steps=2 format=3 uid="uid://cictl88hgphfp"]
 
-[ext_resource type="VideoStream" path="res://bigbuckbunny.webm" id="1_jrahw"]
+[ext_resource type="VideoStream" path="res://bigbuckbunny.webm" id="1_5h5ny"]
 
 [node name="Node2D" type="VideoStreamPlayer"]
-offset_right = 1024.0
-offset_bottom = 601.0
-stream = ExtResource("1_jrahw")
+anchors_preset = -1
+anchor_right = 0.865
+anchor_bottom = 0.775
+offset_right = 27.5199
+offset_bottom = 98.8
+stream = ExtResource("1_5h5ny")
 autoplay = true

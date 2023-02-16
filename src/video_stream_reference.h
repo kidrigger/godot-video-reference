@@ -16,13 +16,7 @@ protected:
 	static void _bind_methods();
 
 public:
-	virtual Object *_instantiate_playback() override;
-	virtual PackedStringArray _get_supported_extensions() const override;
-
-	virtual void _initialize() override;
-	virtual void _cleanup() override;
-
-	virtual String _get_plugin_name() const override;
+	virtual Ref<VideoStreamPlayback> _instantiate_playback() override;
 
 	VideoStreamReference();
 	~VideoStreamReference();

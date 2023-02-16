@@ -51,23 +51,20 @@ public:
 	virtual bool _is_playing() const override;
 	virtual void _set_paused(bool paused) override;
 	virtual bool _is_paused() const override;
-	virtual void _set_loop(bool enable) override;
-	virtual bool _has_loop() const override;
 	virtual double _get_length() const override;
 	virtual double _get_playback_position() const override;
 	virtual void _seek(double time) override;
-	virtual void _set_audio_track(int64_t idx) override;
+	virtual void _set_audio_track(int32_t idx) override;
 	virtual Ref<Texture2D> _get_texture() const override;
-	bool should_process(WebMFrame &video_frame);
 	virtual void _update(double delta) override;
-	virtual int64_t _get_channels() const override;
-	virtual int64_t _get_mix_rate() const override;
+	virtual int32_t _get_channels() const override;
+	virtual int32_t _get_mix_rate() const override;
+
+	bool open_file(const String &file_name);
+
+	bool should_process(WebMFrame &video_frame);
 	double get_sample_rate() const;
 	bool has_enough_video_frames() const;
-	virtual void _initialize() override;
-	virtual void _cleanup() override;
-
-	virtual bool _file_opened() override;
 
 	VideoStreamPlaybackReference();
 	~VideoStreamPlaybackReference() override;
